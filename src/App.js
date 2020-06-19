@@ -16,19 +16,83 @@ class App extends React.Component {
     };
   }
 
-  componentDidMount = async () => {};
+  componentDidMount = async () => {
+    let web3Provider;
 
-  render = () => {};
+    if (window.ethereum) {
+      web3Provider = window.ethereum;
+      try {
+        await window.ethereum.enable();
+      } catch (error) {
+        this.logError("Please allow access to your Web3 wallet.");
+        return;
+      }
+    } else if (window.web3) {
+      web3Provider = window.web3.currentProvider;
+    } else {
+      this.logError("Please install MetaMask!");
+      return;
+    }
 
-  updateBalance = async () => {};
+    const web3 = new Web3(web3Provider);
+    const networkID = await web3.eth.net.getId();
+    if (networkID !== 42) {
+      this.logError("Please set your network to Kovan.");
+      return;
+    }
 
-  logError = (error) => {};
+    this.setState({ web3 }, () => {
+      this.updateBalance();
+      setInterval(() => {
+        this.updateBalance();
+      }, 10 * 1000);
+    });
+  };
 
-  log = (message) => {};
+  render = () => {
+    const { balance, message, error } = this.state;
+    return (
+      <div className="App">
+        <p>Balance: {balance} BTC</p>
+        <p>
+          <button onClick={() => this.deposit().catch(this.logError)}>
+            Deposit 0.001 BTC
+          </button>
+        </p>
+        <p>
+          <button onClick={() => this.withdraw().catch(this.logError)}>
+            Withdraw {balance} BTC
+          </button>
+        </p>
+        <p>{message}</p>
+        {error ? <p style={{ color: "red" }}>{error}</p> : null}
+      </div>
+    );
+  };
 
-  deposit = async () => {};
+  updateBalance = async () => {
+    const { web3 } = this.state;
+    const contract = new web3.eth.Contract(ABI, contractAddress);
+    const balance = await contract.methods.balance().call();
+    this.setState({ balance: parseInt(balance.toString()) });
+  };
 
-  withdraw = async () => {};
+  logError = (error) => {
+    console.error(error);
+    this.setState({ error: String((error || {}).message || error) });
+  };
+
+  log = (message) => {
+    this.setState({ message });
+  };
+
+  deposit = async () => {
+    this.logError("");
+  };
+
+  withdraw = async () => {
+    this.logError("");
+  };
 }
 
 export default App;
